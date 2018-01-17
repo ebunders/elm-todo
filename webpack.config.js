@@ -50,7 +50,7 @@ var commonConfig = {
             inject: 'body',
             filename: 'index.html'
         })
-    ]Het mooie van elm isHet mooiHet mooiHet mooiHet mooiHet mooiHet mooiHet mooie van elm is dat je e van elm is dat je e van elm is dat je e van elm is dat je e van elm is dat je e van elm is dat je Het mooie van elm is dat je e van elm is dat je  dat je
+    ]
 }
 
 // additional webpack settings for local env (when invoked by 'npm start')
