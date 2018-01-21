@@ -137,7 +137,7 @@ update msg model =
                 newTasks =
                     Task newId model.editTask False :: model.tasks
             in
-                ( { model | tasks = newTasks, page = TasksPage }, Cmd.none )
+                ( { model | tasks = newTasks, page = TasksPage, editTask = "" }, Cmd.none )
 
         Cancel ->
             ( { model | editTask = "", page = TasksPage }, Cmd.none )
