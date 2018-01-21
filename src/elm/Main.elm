@@ -50,16 +50,9 @@ type Page
 
 init : Location -> ( Model, Cmd Msg )
 init location =
-    let
-        tasks =
-            [ Task 1 "task 1" False
-            , Task 2 "task 2" False
-            , Task 3 "task 3" True
-            ]
-    in
-        ( Model (locationToPage location) tasks ""
-        , Cmd.none
-        )
+    ( Model (locationToPage location) [] ""
+    , Cmd.none
+    )
 
 
 
@@ -84,6 +77,7 @@ type Msg
     | UpdateEditTask String
     | CreateTask
     | Cancel
+    | UpdateTask TaskId
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -96,10 +90,29 @@ update msg model =
             )
 
         UrlChange location ->
-            -- the url has changed, update the current page
-            ( { model | page = (locationToPage location) }
-            , Cmd.none
-            )
+            let
+                page =
+                    locationToPage location
+
+                newEditTask =
+                    case page of
+                        EditTaskPage id ->
+                            model.tasks
+                                |> List.filter (\task -> task.id == id)
+                                |> List.map (\task -> task.title)
+                                |> List.head
+                                |> Maybe.withDefault ""
+
+                        _ ->
+                            model.editTask
+            in
+                -- the url has changed, update the current page
+                ( { model
+                    | page = (locationToPage location)
+                    , editTask = newEditTask
+                  }
+                , Cmd.none
+                )
 
         ToggleDone taskId ->
             let
@@ -137,10 +150,24 @@ update msg model =
                 newTasks =
                     Task newId model.editTask False :: model.tasks
             in
-                ( { model | tasks = newTasks, page = TasksPage }, Cmd.none )
+                ( { model | tasks = newTasks, page = TasksPage, editTask = "" }, Cmd.none )
 
         Cancel ->
             ( { model | editTask = "", page = TasksPage }, Cmd.none )
+
+        UpdateTask taskId ->
+            let
+                newTasks =
+                    model.tasks
+                        |> List.map
+                            (\task ->
+                                if task.id == taskId then
+                                    { task | title = model.editTask }
+                                else
+                                    task
+                            )
+            in
+                ( { model | tasks = newTasks, page = TasksPage, editTask = "" }, Cmd.none )
 
 
 locationToPage : Location -> Page
@@ -229,7 +256,7 @@ viewTask task =
                     [ input [ onClick (ToggleDone task.id), type_ "checkbox", checked task.done ] []
                     , span [] [ taskTitle ]
                     ]
-                , a [ class "float-right" ] [ text "Edit" ]
+                , a [ class "float-right", onClick (NewUrl ("#edit/" ++ toString task.id)) ] [ text "Edit" ]
                 ]
             ]
 
@@ -250,16 +277,26 @@ viewForm model maybeId =
             , div [ class "form-group mt-3" ]
                 [ label [ for "comment" ] [ text "Todo item:" ]
                 , textarea [ class "form-control", Html.Attributes.id "comment", onInput UpdateEditTask, value model.editTask ] []
-                , viewFormButtons
+                , viewFormButtons maybeId
                 ]
             ]
 
 
-viewFormButtons : Html Msg
-viewFormButtons =
-    div [ class "btn-group float-right mt-3" ]
-        [ button [ class "btn btn-outline-secondary", type_ "button", onClick Cancel ]
-            [ text "Cancel" ]
-        , button [ class "btn btn-outline-primary", type_ "button", onClick CreateTask ]
-            [ text "Saven" ]
-        ]
+viewFormButtons : Maybe TaskId -> Html Msg
+viewFormButtons maybeId =
+    let
+        saveAction : Msg
+        saveAction =
+            case maybeId of
+                Just taskId ->
+                    UpdateTask taskId
+
+                Nothing ->
+                    CreateTask
+    in
+        div [ class "btn-group float-right mt-3" ]
+            [ button [ class "btn btn-outline-secondary", type_ "button", onClick Cancel ]
+                [ text "Cancel" ]
+            , button [ class "btn btn-outline-primary", type_ "button", onClick saveAction ]
+                [ text "Saven" ]
+            ]
