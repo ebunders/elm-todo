@@ -82,6 +82,12 @@ We gaan de todo app ontwikkelen in een aantal stappen. Het resultaat van iedere 
 In deze stap gaan we twee pagina's ontwikkelen, met navigatie over en weer, en integratie met de browser history api. Dit betekent dat wanneer je naar een pagina navigeert dit de url veranderd, en dat je dus ook naar de pagina's kunt navigeren via de url.
 [Hier](https://github.com/elm-lang/navigation) is de informatie over de navigatie api.
 
+Om te beginnen installeren we twee elm packages:
+```
+elm package install elm-lang/navigation
+elm package install evancz/url-parser
+```
+
 het resultaat van deze stap is te vinden in branch `1-paginas`
 
 ### Stap 2: pagina 1 - task lijst
