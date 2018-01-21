@@ -1,10 +1,10 @@
 module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, type_)
-import Html.Events exposing (onCheck, onClick)
+import Html.Attributes exposing (checked, class, for, type_, value)
+import Html.Events exposing (onCheck, onClick, onInput)
 import Navigation exposing (..)
-import UrlParser exposing (oneOf)
+import UrlParser exposing ((</>), oneOf)
 
 
 main =
@@ -23,6 +23,7 @@ main =
 type alias Model =
     { page : Page
     , tasks : List Task
+    , editTask : String
     }
 
 
@@ -39,7 +40,8 @@ type alias Task =
 
 type Page
     = TasksPage
-    | EditTaskPage
+    | EditTaskPage Int
+    | NewTaskPage
 
 
 
@@ -55,7 +57,7 @@ init location =
             , Task 3 "task 3" True
             ]
     in
-        ( Model (locationToPage location) tasks
+        ( Model (locationToPage location) tasks ""
         , Cmd.none
         )
 
@@ -69,7 +71,8 @@ route : UrlParser.Parser (Page -> a) a
 route =
     oneOf
         [ UrlParser.map TasksPage (UrlParser.s "tasks")
-        , UrlParser.map EditTaskPage (UrlParser.s "edit")
+        , UrlParser.map EditTaskPage (UrlParser.s "edit" </> UrlParser.int)
+        , UrlParser.map NewTaskPage (UrlParser.s "new")
         ]
 
 
@@ -78,6 +81,9 @@ type Msg
     | UrlChange Navigation.Location
     | ToggleDone Int
     | RemoveDone
+    | UpdateEditTask String
+    | CreateTask
+    | Cancel
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -116,6 +122,26 @@ update msg model =
             in
                 ( { model | tasks = newTasks }, Cmd.none )
 
+        UpdateEditTask text ->
+            ( { model | editTask = text }, Cmd.none )
+
+        CreateTask ->
+            let
+                newId =
+                    model.tasks
+                        |> List.map (\task -> task.id)
+                        |> List.maximum
+                        |> Maybe.withDefault 0
+                        |> (\i -> i + 1)
+
+                newTasks =
+                    Task newId model.editTask False :: model.tasks
+            in
+                ( { model | tasks = newTasks, page = TasksPage }, Cmd.none )
+
+        Cancel ->
+            ( { model | editTask = "", page = TasksPage }, Cmd.none )
+
 
 locationToPage : Location -> Page
 locationToPage location =
@@ -148,8 +174,11 @@ view model =
                 TasksPage ->
                     viewTasksPage model
 
-                EditTaskPage ->
-                    viewEditTaskPage model
+                EditTaskPage id ->
+                    viewForm model (Just id)
+
+                NewTaskPage ->
+                    viewForm model Nothing
     in
         div [ class "container" ]
             [ div [ class "row" ]
@@ -173,7 +202,7 @@ viewButtons : Html Msg
 viewButtons =
     div [ class "btn-group float-right mt-3" ]
         [ button [ class "btn btn-outline-secondary", type_ "button", onClick RemoveDone ] [ text "Remove done" ]
-        , button [ class "btn btn-outline-primary", type_ "button" ] [ text "Add Todo" ]
+        , button [ class "btn btn-outline-primary", type_ "button", onClick (NewUrl "#new") ] [ text "Add Todo" ]
         ]
 
 
@@ -205,6 +234,32 @@ viewTask task =
             ]
 
 
-viewEditTaskPage : Model -> Html msg
-viewEditTaskPage model =
-    h1 [] [ text "Edit task page" ]
+viewForm : Model -> Maybe TaskId -> Html Msg
+viewForm model maybeId =
+    let
+        title =
+            case maybeId of
+                Just taskId ->
+                    "Edit Todo"
+
+                Nothing ->
+                    "Nieuwe Todo"
+    in
+        div []
+            [ h1 [] [ text title ]
+            , div [ class "form-group mt-3" ]
+                [ label [ for "comment" ] [ text "Todo item:" ]
+                , textarea [ class "form-control", Html.Attributes.id "comment", onInput UpdateEditTask, value model.editTask ] []
+                , viewFormButtons
+                ]
+            ]
+
+
+viewFormButtons : Html Msg
+viewFormButtons =
+    div [ class "btn-group float-right mt-3" ]
+        [ button [ class "btn btn-outline-secondary", type_ "button", onClick Cancel ]
+            [ text "Cancel" ]
+        , button [ class "btn btn-outline-primary", type_ "button", onClick CreateTask ]
+            [ text "Saven" ]
+        ]
